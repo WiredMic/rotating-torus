@@ -7,14 +7,14 @@
 all: clean build run
 
 clean:
-	rm -f donut
+	rm -f donut.bin
 
 build:
 	# When building include all files
 	# Include math
-	gcc donut.c vector.c bivector.c mvec.c rotor.c -o donut -lm
+	gcc donut.c vector.c bivector.c mvec.c rotor.c -o donut.bin -lm
 
 run:
-	./donut
+	./donut.bin
 
 # end

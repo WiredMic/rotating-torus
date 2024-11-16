@@ -10,8 +10,11 @@ struct GaMultivector {
 struct GaMultivector GeometricProduct(struct GaMultivector a,
                                       struct GaMultivector b);
 
-struct GaMultivector DotProduct(struct GaMultivector a,
-                                struct GaMultivector b);
+struct GaMultivector DotProduct(struct GaMultivector a, struct GaMultivector b);
+
+struct GaMultivector WedgeProduct(struct GaMultivector a,
+                                  struct GaMultivector b);
+
 struct GaMultivector Reverse(struct GaMultivector a);
 float Norm(struct GaMultivector a);
 struct GaMultivector Inverse(struct GaMultivector a);

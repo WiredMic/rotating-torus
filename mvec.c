@@ -3,95 +3,162 @@
 
 struct GaMultivector GeometricProduct(struct GaMultivector a,
                                       struct GaMultivector b) {
-  struct GaMultivector res;
-  res.mvec[0] = a.mvec[0] * b.mvec[0] // scalar/scalar
-                + a.mvec[1] * b.mvec[1] + a.mvec[2] * b.mvec[2] +
-                a.mvec[3] * b.mvec[3] // vector dot product
-                - a.mvec[4] * b.mvec[4] - a.mvec[5] * b.mvec[5] -
-                a.mvec[6] * b.mvec[6]    // bivector dot produt
-                - a.mvec[7] * b.mvec[7]; // trivector/trivector
-  res.mvec[1] = (a.mvec[0] * b.mvec[1] + a.mvec[1] * b.mvec[0])     // scalar/e1
-                + (a.mvec[4] * b.mvec[2] - a.mvec[2] * b.mvec[4])   // e12e2
-                + (a.mvec[3] * b.mvec[5] - a.mvec[5] * b.mvec[3])   // e3e13
-                + (-a.mvec[6] * b.mvec[7] - a.mvec[7] * b.mvec[6]); // e23e123
-  res.mvec[2] = (a.mvec[0] * b.mvec[2] + a.mvec[2] * b.mvec[0])     // scalar/e2
-                + (a.mvec[1] * b.mvec[4] - a.mvec[4] * b.mvec[1])   // e1e12
-                + (a.mvec[6] * b.mvec[3] - a.mvec[3] * b.mvec[6])   // e23e3
-                + (-a.mvec[5] * b.mvec[7] - a.mvec[7] * b.mvec[5]); // e31e123
-  res.mvec[3] = (a.mvec[0] * b.mvec[3] + a.mvec[3] * b.mvec[0])     // scalar/e3
-                + (a.mvec[5] * b.mvec[1] - a.mvec[1] * b.mvec[5])   // e31e1
-                + (a.mvec[2] * b.mvec[6] - a.mvec[6] * b.mvec[2])   // e2e23
-                + (-a.mvec[4] * b.mvec[7] - a.mvec[7] * b.mvec[4]); // e12e123
-  res.mvec[4] = (a.mvec[0] * b.mvec[4] + a.mvec[4] * b.mvec[0])    // scalar/e12
-                + (a.mvec[1] * b.mvec[2] - a.mvec[2] * b.mvec[1])  // e1e2
-                + (a.mvec[5] * b.mvec[6] - a.mvec[6] * b.mvec[5])  // e31e23
-                + (a.mvec[3] * b.mvec[7] + a.mvec[7] * b.mvec[3]); // e3e123
-  res.mvec[5] = (a.mvec[0] * b.mvec[5] + a.mvec[5] * b.mvec[0])    // scalar/e31
-                + (a.mvec[3] * b.mvec[1] - a.mvec[1] * b.mvec[3])  // e3e1
-                + (a.mvec[6] * b.mvec[4] - a.mvec[4] * b.mvec[6])  // e23e12
-                + (a.mvec[2] * b.mvec[7] + a.mvec[7] * b.mvec[2]); // e2e123
-  res.mvec[6] = (a.mvec[0] * b.mvec[6] + a.mvec[6] * b.mvec[0])    // scalar/e23
-                + (a.mvec[2] * b.mvec[3] - a.mvec[3] * b.mvec[2])  // e2e3
-                + (a.mvec[4] * b.mvec[5] - a.mvec[5] * b.mvec[4])  // e12e31
-                + (a.mvec[1] * b.mvec[7] + a.mvec[7] * b.mvec[1]); // e1e123
-  res.mvec[7] = a.mvec[7] * b.mvec[0] + a.mvec[6] * b.mvec[1] +
-                a.mvec[5] * b.mvec[2] + a.mvec[4] * b.mvec[3] +
-                a.mvec[3] * b.mvec[4] + a.mvec[2] * b.mvec[5] +
-                a.mvec[1] * b.mvec[6] + a.mvec[0] * b.mvec[7];
+  struct GaMultivector res = {
+      .mvec[0] = a.mvec[0] * b.mvec[0] // scalar/scalar
+                 + a.mvec[1] * b.mvec[1] + a.mvec[2] * b.mvec[2] +
+                 a.mvec[3] * b.mvec[3] // vector dot product
+                 - a.mvec[4] * b.mvec[4] - a.mvec[5] * b.mvec[5] -
+                 a.mvec[6] * b.mvec[6]    // bivector dot produt
+                 - a.mvec[7] * b.mvec[7], // trivector/trivector
+      .mvec[1] = (a.mvec[0] * b.mvec[1] + a.mvec[1] * b.mvec[0])   // scalar/e1
+                 + (a.mvec[4] * b.mvec[2] - a.mvec[2] * b.mvec[4]) // e12e2
+                 + (a.mvec[3] * b.mvec[5] - a.mvec[5] * b.mvec[3]) // e3e13
+                 + (-a.mvec[6] * b.mvec[7] - a.mvec[7] * b.mvec[6]), // e23e123
+      .mvec[2] = (a.mvec[0] * b.mvec[2] + a.mvec[2] * b.mvec[0])   // scalar/e2
+                 + (a.mvec[1] * b.mvec[4] - a.mvec[4] * b.mvec[1]) // e1e12
+                 + (a.mvec[6] * b.mvec[3] - a.mvec[3] * b.mvec[6]) // e23e3
+                 + (-a.mvec[5] * b.mvec[7] - a.mvec[7] * b.mvec[5]), // e31e123
+      .mvec[3] = (a.mvec[0] * b.mvec[3] + a.mvec[3] * b.mvec[0])   // scalar/e3
+                 + (a.mvec[5] * b.mvec[1] - a.mvec[1] * b.mvec[5]) // e31e1
+                 + (a.mvec[2] * b.mvec[6] - a.mvec[6] * b.mvec[2]) // e2e23
+                 + (-a.mvec[4] * b.mvec[7] - a.mvec[7] * b.mvec[4]), // e12e123
+      .mvec[4] = (a.mvec[0] * b.mvec[4] + a.mvec[4] * b.mvec[0])   // scalar/e12
+                 + (a.mvec[1] * b.mvec[2] - a.mvec[2] * b.mvec[1]) // e1e2
+                 + (a.mvec[5] * b.mvec[6] - a.mvec[6] * b.mvec[5]) // e31e23
+                 + (a.mvec[3] * b.mvec[7] + a.mvec[7] * b.mvec[3]), // e3e123
+      .mvec[5] = (a.mvec[0] * b.mvec[5] + a.mvec[5] * b.mvec[0])   // scalar/e31
+                 + (a.mvec[3] * b.mvec[1] - a.mvec[1] * b.mvec[3]) // e3e1
+                 + (a.mvec[6] * b.mvec[4] - a.mvec[4] * b.mvec[6]) // e23e12
+                 + (a.mvec[2] * b.mvec[7] + a.mvec[7] * b.mvec[2]), // e2e123
+      .mvec[6] = (a.mvec[0] * b.mvec[6] + a.mvec[6] * b.mvec[0])   // scalar/e23
+                 + (a.mvec[2] * b.mvec[3] - a.mvec[3] * b.mvec[2]) // e2e3
+                 + (a.mvec[4] * b.mvec[5] - a.mvec[5] * b.mvec[4]) // e12e31
+                 + (a.mvec[1] * b.mvec[7] + a.mvec[7] * b.mvec[1]), // e1e123
+      .mvec[7] = a.mvec[7] * b.mvec[0] + a.mvec[6] * b.mvec[1] +
+                 a.mvec[5] * b.mvec[2] + a.mvec[4] * b.mvec[3] +
+                 a.mvec[3] * b.mvec[4] + a.mvec[2] * b.mvec[5] +
+                 a.mvec[1] * b.mvec[6] + a.mvec[0] * b.mvec[7],
+  };
   return res;
 };
 
 struct GaMultivector DotProduct(struct GaMultivector a,
                                 struct GaMultivector b) {
-  struct GaMultivector res;
-  res.mvec[0] = a.mvec[0] * b.mvec[0] // scalar/scalar
-                + a.mvec[1] * b.mvec[1] + a.mvec[2] * b.mvec[2] +
-                a.mvec[3] * b.mvec[3] // vector dot product
-                - a.mvec[4] * b.mvec[4] - a.mvec[5] * b.mvec[5] -
-                a.mvec[6] * b.mvec[6]    // bivector dot produt
-                - a.mvec[7] * b.mvec[7]; // trivector/trivector
-  res.mvec[1] = (a.mvec[0] * b.mvec[1] + a.mvec[1] * b.mvec[0])     // scalar/e1
-                + (a.mvec[4] * b.mvec[2] - a.mvec[2] * b.mvec[4])   // e12e2
-                + (a.mvec[3] * b.mvec[5] - a.mvec[5] * b.mvec[3])   // e3e13
-                + (-a.mvec[6] * b.mvec[7] - a.mvec[7] * b.mvec[6]); // e23e123
-  res.mvec[2] = (a.mvec[0] * b.mvec[2] + a.mvec[2] * b.mvec[0])     // scalar/e2
-                + (a.mvec[1] * b.mvec[4] - a.mvec[4] * b.mvec[1])   // e1e12
-                + (a.mvec[6] * b.mvec[3] - a.mvec[3] * b.mvec[6])   // e23e3
-                + (-a.mvec[5] * b.mvec[7] - a.mvec[7] * b.mvec[5]); // e31e123
-  res.mvec[3] = (a.mvec[0] * b.mvec[3] + a.mvec[3] * b.mvec[0])     // scalar/e3
-                + (a.mvec[5] * b.mvec[1] - a.mvec[1] * b.mvec[5])   // e31e1
-                + (a.mvec[2] * b.mvec[6] - a.mvec[6] * b.mvec[2])   // e2e23
-                + (-a.mvec[4] * b.mvec[7] - a.mvec[7] * b.mvec[4]); // e12e123
-  res.mvec[4] =
-      (a.mvec[0] * b.mvec[4] +
-       a.mvec[4] *
-           b.mvec[0]) // scalar/e12
-                      // +(a.mvec[1]*b.mvec[2]-a.mvec[2]*b.mvec[1]) // e1e2
-                      // +(a.mvec[5]*b.mvec[6]-a.mvec[6]*b.mvec[5]) // e31e23
-      + (a.mvec[3] * b.mvec[7] + a.mvec[7] * b.mvec[3]); // e3e123
-  res.mvec[5] =
-      (a.mvec[0] * b.mvec[5] +
-       a.mvec[5] *
-           b.mvec[0]) // scalar/e31
-                      // +(a.mvec[3]*b.mvec[1]-a.mvec[1]*b.mvec[3]) // e3e1
-                      // +(a.mvec[6]*b.mvec[4]-a.mvec[4]*b.mvec[6]) // e23e12
-      + (a.mvec[2] * b.mvec[7] + a.mvec[7] * b.mvec[2]); // e2e123
-  res.mvec[6] =
-      (a.mvec[0] * b.mvec[6] +
-       a.mvec[6] *
-           b.mvec[0]) // scalar/e23
-                      // +(a.mvec[2]*b.mvec[3]-a.mvec[3]*b.mvec[2]) // e2e3
-                      // +(a.mvec[4]*b.mvec[5]-a.mvec[5]*b.mvec[4]) // e12e31
-      + (a.mvec[1] * b.mvec[7] + a.mvec[7] * b.mvec[1]); // e1e123
-  res.mvec[7] = a.mvec[7] * b.mvec[0]
-                // + a.mvec[6] * b.mvec[1]
-                // + a.mvec[5] * b.mvec[2]
-                // + a.mvec[4] * b.mvec[3]
-                // + a.mvec[3] * b.mvec[4]
-                // + a.mvec[2] * b.mvec[5]
-                // + a.mvec[1] * b.mvec[6]
-                + a.mvec[0] * b.mvec[7];
+  struct GaMultivector res = {
+      .mvec[0] = a.mvec[0] * b.mvec[0] // scalar/scalar
+                 + a.mvec[1] * b.mvec[1] + a.mvec[2] * b.mvec[2] +
+                 a.mvec[3] * b.mvec[3] // vector dot product
+                 - a.mvec[4] * b.mvec[4] - a.mvec[5] * b.mvec[5] -
+                 a.mvec[6] * b.mvec[6]    // bivector dot produt
+                 - a.mvec[7] * b.mvec[7], // trivector/trivector
+      .mvec[1] = (a.mvec[0] * b.mvec[1] + a.mvec[1] * b.mvec[0])   // scalar/e1
+                 + (a.mvec[4] * b.mvec[2] - a.mvec[2] * b.mvec[4]) // e12e2
+                 + (a.mvec[3] * b.mvec[5] - a.mvec[5] * b.mvec[3]) // e3e13
+                 + (-a.mvec[6] * b.mvec[7] - a.mvec[7] * b.mvec[6]), // e23e123
+      .mvec[2] = (a.mvec[0] * b.mvec[2] + a.mvec[2] * b.mvec[0])   // scalar/e2
+                 + (a.mvec[1] * b.mvec[4] - a.mvec[4] * b.mvec[1]) // e1e12
+                 + (a.mvec[6] * b.mvec[3] - a.mvec[3] * b.mvec[6]) // e23e3
+                 + (-a.mvec[5] * b.mvec[7] - a.mvec[7] * b.mvec[5]), // e31e123
+      .mvec[3] = (a.mvec[0] * b.mvec[3] + a.mvec[3] * b.mvec[0])   // scalar/e3
+                 + (a.mvec[5] * b.mvec[1] - a.mvec[1] * b.mvec[5]) // e31e1
+                 + (a.mvec[2] * b.mvec[6] - a.mvec[6] * b.mvec[2]) // e2e23
+                 + (-a.mvec[4] * b.mvec[7] - a.mvec[7] * b.mvec[4]), // e12e123
+      .mvec[4] =
+          (a.mvec[0] * b.mvec[4] +
+           a.mvec[4] *
+               b.mvec[0]) // scalar/e12
+                          // +(a.mvec[1]*b.mvec[2]-a.mvec[2]*b.mvec[1]) // e1e2
+                          // +(a.mvec[5]*b.mvec[6]-a.mvec[6]*b.mvec[5]) //
+                          // e31e23
+          + (a.mvec[3] * b.mvec[7] + a.mvec[7] * b.mvec[3]), // e3e123
+      .mvec[5] =
+          (a.mvec[0] * b.mvec[5] +
+           a.mvec[5] *
+               b.mvec[0]) // scalar/e31
+                          // +(a.mvec[3]*b.mvec[1]-a.mvec[1]*b.mvec[3]) // e3e1
+                          // +(a.mvec[6]*b.mvec[4]-a.mvec[4]*b.mvec[6]) //
+                          // e23e12
+          + (a.mvec[2] * b.mvec[7] + a.mvec[7] * b.mvec[2]), // e2e123
+      .mvec[6] =
+          (a.mvec[0] * b.mvec[6] +
+           a.mvec[6] *
+               b.mvec[0]) // scalar/e23
+                          // +(a.mvec[2]*b.mvec[3]-a.mvec[3]*b.mvec[2]) // e2e3
+                          // +(a.mvec[4]*b.mvec[5]-a.mvec[5]*b.mvec[4]) //
+                          // e12e31
+          + (a.mvec[1] * b.mvec[7] + a.mvec[7] * b.mvec[1]), // e1e123
+      .mvec[7] = a.mvec[7] * b.mvec[0]
+                 // + a.mvec[6] * b.mvec[1]
+                 // + a.mvec[5] * b.mvec[2]
+                 // + a.mvec[4] * b.mvec[3]
+                 // + a.mvec[3] * b.mvec[4]
+                 // + a.mvec[2] * b.mvec[5]
+                 // + a.mvec[1] * b.mvec[6]
+                 + a.mvec[0] * b.mvec[7],
+  };
+  return res;
+};
 
+struct GaMultivector WedgeProduct(struct GaMultivector a,
+                                  struct GaMultivector b) {
+  struct GaMultivector res = {
+      .mvec[0] =
+          a.mvec[0] * b.mvec[0], // sca.mvecla.mvecr/sca.mvecla.mvecr
+                                 // +a.mvec[1]*b.mvec[1]+a.mvec[2]*b.mvec[2]+a.mvec[3]*b.mvec[3]
+                                 // // vector dot product
+                                 // -a.mvec[4]*b.mvec[4]-a.mvec[5]*b.mvec[5]-a.mvec[6]*b.mvec[6]
+                                 // // b.mvecivector dot produt
+                                 // -a.mvec[7]*b.mvec[7], // trivector/trivector
+      .mvec[1] =
+          a.mvec[0] * b.mvec[1] +
+          a.mvec[1] *
+              b.mvec[0], // sca.mvecla.mvecr/e1
+                         // +(a.mvec[4]*b.mvec[2]-a.mvec[2]*b.mvec[4]) // e12e2
+                         // +(a.mvec[3]*b.mvec[5]-a.mvec[5]*b.mvec[3]) // e3e13
+                         // +(-a.mvec[6]*b.mvec[7]-a.mvec[7]*b.mvec[6]), //
+                         // e23e123
+      .mvec[2] =
+          a.mvec[0] * b.mvec[2] +
+          a.mvec[2] *
+              b.mvec[0], // sca.mvecla.mvecr/e2
+                         // +(a.mvec[1]*b.mvec[4]-a.mvec[4]*b.mvec[1]) // e1e12
+                         // +(a.mvec[6]*b.mvec[3]-a.mvec[3]*b.mvec[6]) // e23e3
+                         // +(-a.mvec[5]*b.mvec[7]-a.mvec[7]*b.mvec[5]), //
+                         // e31e123
+      .mvec[3] =
+          a.mvec[0] * b.mvec[3] +
+          a.mvec[3] *
+              b.mvec[0], // sca.mvecla.mvecr/e3
+                         // +(a.mvec[5]*b.mvec[1]-a.mvec[1]*b.mvec[5]) // e31e1
+                         // +(a.mvec[2]*b.mvec[6]-a.mvec[6]*b.mvec[2]) // e2e23
+                         // +(-a.mvec[4]*b.mvec[7]-a.mvec[7]*b.mvec[4]),
+                         // //e12e123
+      .mvec[4] = (a.mvec[0] * b.mvec[4] +
+                  a.mvec[4] * b.mvec[0]) // sca.mvecla.mvecr/e12
+                 + (a.mvec[1] * b.mvec[2] - a.mvec[2] * b.mvec[1]), // e1e2
+                                                                    // +(a.mvec[5]*b.mvec[6]-a.mvec[6]*b.mvec[5])
+                                                                    // // e31e23
+                                                                    // +(a.mvec[3]*b.mvec[7]+a.mvec[7]*b.mvec[3]),
+                                                                    // // e3e123
+      .mvec[5] = (a.mvec[0] * b.mvec[5] +
+                  a.mvec[5] * b.mvec[0]) // sca.mvecla.mvecr/e31
+                 + (a.mvec[3] * b.mvec[1] - a.mvec[1] * b.mvec[3]), // e3e1
+                                                                    // +(a.mvec[6]*b.mvec[4]-a.mvec[4]*b.mvec[6])
+                                                                    // // e23e12
+                                                                    // +(a.mvec[2]*b.mvec[7]+a.mvec[7]*b.mvec[2]),
+                                                                    // // e2e123
+      .mvec[6] = (a.mvec[0] * b.mvec[6] +
+                  a.mvec[6] * b.mvec[0]) // sca.mvecla.mvecr/e23
+                 + (a.mvec[2] * b.mvec[3] - a.mvec[3] * b.mvec[2]), // e2e3
+                                                                    // +(a.mvec[4]*b.mvec[5]-a.mvec[5]*b.mvec[4])
+                                                                    // // e12e31
+                                                                    // +(a.mvec[1]*b.mvec[7]+a.mvec[7]*b.mvec[1]),
+                                                                    // //e1e123
+      .mvec[7] = a.mvec[7] * b.mvec[0] + a.mvec[6] * b.mvec[1] +
+                 a.mvec[5] * b.mvec[2] + a.mvec[4] * b.mvec[3] +
+                 a.mvec[3] * b.mvec[4] + a.mvec[2] * b.mvec[5] +
+                 a.mvec[1] * b.mvec[6] + a.mvec[0] * b.mvec[7],
+  };
   return res;
 };
 
