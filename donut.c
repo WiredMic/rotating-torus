@@ -17,11 +17,15 @@
 #define NUM_POINT_IN_CIRC 128
 #define NUM_CIRC_IN_TORUS 128
 #define NUM_POINT_IN_TORUS (NUM_POINT_IN_CIRC * NUM_CIRC_IN_TORUS)
+// x direction
 #define DONUT_WIDTH 25
 #define DONUT_WIDTH_BUFFER 10
+// y direction
 #define DONUT_HEIGTH (DONUT_WIDTH / 2.0)
 #define DONUT_HEIGTH_BUFFER 5
-#define FPS 30
+#define SCREEN_WIDTH 90
+#define SCREEN_HEIGHT 30
+#define FPS 2
 
 // pass by reference
 // \[\vec{v}' = R_2^\dag(R_1^\dag \vec{v} R_1 + \vec{r})R_2\]
@@ -142,14 +146,32 @@ void rotateTorus(struct GaVector *pointArray, float angle3, float angle4) {
   }
 }
 
-struct Pixel {
-  uint8_t x;
-  uint8_t y;
-  char brightness;
-  float zBuffer;
+struct Screen {
+  char brightness[SCREEN_HEIGHT][SCREEN_WIDTH]; // y size, x size
+  float zbuffer[SCREEN_HEIGHT][SCREEN_WIDTH];   // y size, x size
 };
 
-void projectTorus(struct GaVector *pointArray, struct Pixel *renderBuffer) {
+struct Screen projectTorus(struct GaVector *pointArray) {
+
+  // Make screen
+  struct Screen screen;
+  // make base string "     \0"
+  char baseStr[SCREEN_WIDTH]; // x value
+  for (int j = 0; j < SCREEN_WIDTH - 1; j++) {
+    baseStr[j] = ' ';
+  }
+  baseStr[SCREEN_WIDTH - 1] = '\0'; // Scree width -1 ( because index from 0 )
+
+  // copy base string to all strings in screen buffer
+  for (int i = 0; i < SCREEN_HEIGHT; i++) { // y value
+    strcpy(screen.brightness[i], baseStr);
+  }
+
+  for (int i = 0; i < SCREEN_HEIGHT; i++) {
+    for (int j = 0; j < SCREEN_WIDTH; j++) {
+      screen.zbuffer[i][j] = 0;
+    }
+  }
 
   // \[\vec{v}_\parallel=(\vec{v}\cdot\vec{B})\vec{B}^{-1} \]
   // plane of projecting
@@ -168,12 +190,12 @@ void projectTorus(struct GaVector *pointArray, struct Pixel *renderBuffer) {
     /* printf("%d: e1: %f, e2: %f, e3: %f\n", i, vectorProj.mvec.mvec[1], */
     /*        vectorProj.mvec.mvec[2], vectorProj.mvec.mvec[3]); */
 
-    renderBuffer[i].x = (int)ceilf(vectorProj.mvec.mvec[1] * DONUT_WIDTH /
-                                   (minorRadius * 2 + majorRadius)) +
-                        DONUT_WIDTH + DONUT_WIDTH_BUFFER;
-    renderBuffer[i].y = DONUT_HEIGTH + DONUT_HEIGTH_BUFFER -
-                        (int)ceilf(vectorProj.mvec.mvec[3] * DONUT_HEIGTH /
-                                   (minorRadius * 2 + majorRadius));
+    int x = (int)ceilf(vectorProj.mvec.mvec[1] * DONUT_WIDTH /
+                       (minorRadius * 2 + majorRadius)) +
+            DONUT_WIDTH + DONUT_WIDTH_BUFFER;
+    int y = DONUT_HEIGTH + DONUT_HEIGTH_BUFFER -
+            (int)ceilf(vectorProj.mvec.mvec[3] * DONUT_HEIGTH /
+                       (minorRadius * 2 + majorRadius));
 
     // In order to find the brigtness of the pixel
     // The way to find the brigtness is to make a unit light vector and then
@@ -186,7 +208,7 @@ void projectTorus(struct GaVector *pointArray, struct Pixel *renderBuffer) {
     // the dual vector must go out
 
     // light vector
-    struct GaVector lightRayDirection = newGaVec(1, 1, 1);
+    struct GaVector lightRayDirection = newGaVec(1, 0.2, 1);
     float raylenght = Norm(lightRayDirection.mvec);
     struct GaVector lightRay = {
         .mvec.mvec[1] = lightRayDirection.mvec.mvec[1] / raylenght,
@@ -200,46 +222,47 @@ void projectTorus(struct GaVector *pointArray, struct Pixel *renderBuffer) {
     int brightness = (int)ceilf(
         (WedgeProduct(lightRay.mvec, pointArray[i].mvec).mvec[7] + 1) * 6);
 
+    char brightnessPixel;
     // .,-~:;=!*#$@
     switch (brightness) {
     case 1: // smallest
-      renderBuffer[i].brightness = '.';
+      brightnessPixel = '.';
       break;
     case 2:
-      renderBuffer[i].brightness = ',';
+      brightnessPixel = ',';
       break;
     case 3:
-      renderBuffer[i].brightness = '-';
+      brightnessPixel = '-';
       break;
     case 4:
-      renderBuffer[i].brightness = '~';
+      brightnessPixel = '~';
       break;
     case 5:
-      renderBuffer[i].brightness = ':';
+      brightnessPixel = ':';
       break;
     case 6:
-      renderBuffer[i].brightness = ';';
+      brightnessPixel = ';';
       break;
     case 7:
-      renderBuffer[i].brightness = '=';
+      brightnessPixel = '=';
       break;
     case 8:
-      renderBuffer[i].brightness = '!';
+      brightnessPixel = '!';
       break;
     case 9:
-      renderBuffer[i].brightness = '*';
+      brightnessPixel = '*';
       break;
     case 10:
-      renderBuffer[i].brightness = '#';
+      brightnessPixel = '#';
       break;
     case 11:
-      renderBuffer[i].brightness = '$';
+      brightnessPixel = '$';
       break;
     case 12:
-      renderBuffer[i].brightness = '@';
+      brightnessPixel = '@';
       break;
     default:
-      /* renderBuffer[i].brightness = '#'; */
+      /* brightnessPixel = '#'; */
     }
 
     // z bufer
@@ -252,28 +275,39 @@ void projectTorus(struct GaVector *pointArray, struct Pixel *renderBuffer) {
                              screenPlaneInv.mvec),
     };
 
-    renderBuffer[i].zBuffer = vectorRejct.mvec.mvec[2];
+    float zBuffer;
+    if (vectorRejct.mvec.mvec[2] == 0) {
+      zBuffer = vectorRejct.mvec.mvec[2] + 0.01;
+    } else {
+      zBuffer = vectorRejct.mvec.mvec[2];
+    }
+
+    if (zBuffer > screen.zbuffer[y][x] || screen.zbuffer[y][x] == 0) {
+
+      screen.zbuffer[y][x] = zBuffer;
+
+      screen.brightness[y][x] = brightnessPixel;
+    }
   }
+
+  return screen;
 }
 
-void displayTorus(struct Pixel *renderBuffer) {
+void displayTorus(struct Screen screen) {
 
-  for (int i = 0; i < NUM_POINT_IN_TORUS; i++) {
-  }
+  // place cursor at 1,1
+  // clear screen
+  // print strings
 
-  printf("\x1b[2J");
-  for (int i = 0; i < NUM_POINT_IN_TORUS; i++) {
-    /* printf("i: %i,x: %d, y: %d\n", i, renderBuffer[i].x, renderBuffer[i].y);
-     */
-    printf("\x1b[%d;%dH", renderBuffer[i].y, renderBuffer[i].x);
-    printf("%c\n", renderBuffer[i].brightness);
+  printf("\x1b[1;1H"); // place cursor in 1 1
+  printf("\x1b[2J");   // clear screen
+  for (int i = 0; i < SCREEN_HEIGHT; i++) {
+    printf("%s\n", screen.brightness[i]);
   }
 }
 
 int main() {
-  printf("\x1b[2J");
   printf("\x1b[?25l");
-  printf("\x1b[0;0H");
   // Create torus
   struct GaVector pointArray[NUM_POINT_IN_TORUS]; // NUM_POINT_IN_TORIS
   makeTorus(pointArray);
@@ -292,27 +326,25 @@ int main() {
       /*        torusArray[i].mvec.mvec[2], torusArray[i].mvec.mvec[3]); */
     }
 
-    angle3 += TAU / (FPS * 512);
+    angle3 += TAU / (60 * 5230);
     if (angle3 > TAU) {
       angle3 -= TAU;
     }
 
-    angle4 += TAU / (FPS * 258);
+    angle4 += TAU / (60 * 3000);
     if (angle4 > TAU) {
       angle4 -= TAU;
     }
 
     rotateTorus(pointArray, angle3, angle4);
 
-    struct Pixel renderBuffer[NUM_POINT_IN_TORUS];
+    struct Screen screen = projectTorus(torusArray);
 
-    projectTorus(torusArray, renderBuffer);
-
-    displayTorus(renderBuffer);
+    displayTorus(screen);
     printf("\x1b[40;0H");
     printf("%f\n", angle3);
     printf("%f\n", angle4);
-    usleep(1 / FPS * 1000000);
+    usleep((1 / 2) * 1000000);
   }
   return 0;
 }
