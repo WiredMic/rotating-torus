@@ -1,7 +1,12 @@
+// This line **must** come **before** including <time.h> in order to
+// bring in the POSIX functions such as `clock_gettime() from <time.h>`!
+#define _POSIX_C_SOURCE 199309L
+
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 // Include basic geometric algebra structs
@@ -10,10 +15,18 @@
 #include "rotor.h"
 #include "vector.h"
 
+// define function
+/// Convert seconds to milliseconds
+#define SEC_TO_MS(sec) ((sec) * 1000)
+/// Convert nanoseconds to milliseconds
+#define NS_TO_MS(ns) ((ns) / 1000000)
+
 // define constants
 #define TAU 6.283185
 #define minorRadius 1.0
 #define majorRadius 3.0
+#define ANGULARV1 3.5
+#define ANGULARV2 2.0
 #define NUM_POINT_IN_CIRC 128
 #define NUM_CIRC_IN_TORUS 128
 #define NUM_POINT_IN_TORUS (NUM_POINT_IN_CIRC * NUM_CIRC_IN_TORUS)
@@ -23,42 +36,49 @@
 // y direction
 #define DONUT_HEIGTH (DONUT_WIDTH / 2.0)
 #define DONUT_HEIGTH_BUFFER 5
-#define SCREEN_WIDTH 90
+#define SCREEN_WIDTH 70
 #define SCREEN_HEIGHT 30
 #define FPS 2
+#define DELTATIME
+
+/// Get a time stamp in milliseconds.
+uint64_t millis() {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+  uint64_t ms = SEC_TO_MS((uint64_t)ts.tv_sec) + NS_TO_MS((uint64_t)ts.tv_nsec);
+  return ms;
+}
 
 // pass by reference
 // \[\vec{v}' = R_2^\dag(R_1^\dag \vec{v} R_1 + \vec{r})R_2\]
 // \[ = (R_1R_2)^\dag \vec{v} R_1R_2 + R_2^\dag\vec{r}R_2\]
 void makeTorus(struct GaVector *pointArray) {
 
+  // First point all other point are rotated from
   struct GaVector firstPoint = {
       .mvec.mvec[1] = minorRadius, // point
       .mvec.mvec[6] = 1,           // tangent plane
   };
+
+  // Translate vector to translate the circle from origin to the correct place
+  // in torus
   struct GaVector translate = newGaVec(majorRadius, 0, 0);
 
+  // angle and rotion plane for circle
   float angle1 = TAU / NUM_POINT_IN_CIRC;
   struct GaBivector rotPlane1 = newGaBivec(1.0, 0.0, 0.0);
-  /* printf("rotPlane1: e12: %f, e31: %f, e23: %f \n", rotPlane1.mvec.mvec[4],
-   */
-  /*        rotPlane1.mvec.mvec[5], rotPlane1.mvec.mvec[6]); */
+
+  // angle and rotation plane for torus
   float angle2 = TAU / NUM_CIRC_IN_TORUS;
   struct GaBivector rotPlane2 = newGaBivec(0.0, 1.0, 0.0);
-  /* printf("rotPlane2: e12: %f, e31: %f, e23: %f \n", rotPlane2.mvec.mvec[4],
-   */
-  /*        rotPlane2.mvec.mvec[5], rotPlane2.mvec.mvec[6]); */
 
+  // Iterate over all point in torus
   for (int i = 0; i < NUM_CIRC_IN_TORUS; i++) {
+
     // rotation around in the e3e1 plane
     struct GaRotor rotor2 = newGaRotor(angle2 * i, rotPlane2);
 
-    /* printf("    s: %f, e1: %f, e2: %f, e3: %f, e12: %f, e31: %f, e23: %f \n",
-     */
-    /*        rotor2.mvec.mvec[0], rotor2.mvec.mvec[1], rotor2.mvec.mvec[2], */
-    /*        rotor2.mvec.mvec[3], rotor2.mvec.mvec[4], rotor2.mvec.mvec[5], */
-    /*        rotor2.mvec.mvec[6]); */
-
+    // Rotate translation vector
     // R_2^\dag\vec{r}R_2
     struct GaVector translateRot = {
         .mvec = GeometricProduct(
@@ -66,10 +86,8 @@ void makeTorus(struct GaVector *pointArray) {
             rotor2.mvec),
     };
 
-    /* printf("i: %d\n", i); */
-
     for (int j = 0; j < NUM_POINT_IN_CIRC; j++) {
-      // rotation around the
+      // rotation around the e1e2 plane
       struct GaRotor rotor1 = newGaRotor(angle1 * j, rotPlane1);
 
       // The rotor that rotates from first point to the point in the torus
@@ -78,6 +96,7 @@ void makeTorus(struct GaVector *pointArray) {
           .mvec = GeometricProduct(rotor1.mvec, rotor2.mvec),
       };
 
+      // rotate firste point + tangent plane
       // \[(R_1R_2)^\dag \vec{v} R_1R_2\]
       struct GaVector vectorRot = {
           .mvec = GeometricProduct(
@@ -85,7 +104,9 @@ void makeTorus(struct GaVector *pointArray) {
               rotor12.mvec),
       };
 
-      // \[ = (R_1R_2)^\dag \vec{v} R_1R_2 + R_2^\dag\vec{r}R_2\]
+      // translate the rotated point to the correct place in the torus
+      // add point and tangent plane
+      // \[ (R_1R_2)^\dag \vec{v} R_1R_2 + R_2^\dag\vec{r}R_2\]
       struct GaVector pointVec = {
           .mvec.mvec[1] = vectorRot.mvec.mvec[1] + translateRot.mvec.mvec[1],
           .mvec.mvec[2] = vectorRot.mvec.mvec[2] + translateRot.mvec.mvec[2],
@@ -95,46 +116,27 @@ void makeTorus(struct GaVector *pointArray) {
           .mvec.mvec[6] = vectorRot.mvec.mvec[6],
       };
 
+      // Add point + tangent plane to point array
       pointArray[j + i * NUM_POINT_IN_CIRC] = pointVec;
-
-      /* printf("  j: %d\n", j); */
-      /* printf("  index: %d\n", j + i * NUM_POINT_IN_CIRC); */
-      /* printf("    e1: %f, e2: %f, e3: %f \n", */
-      /*        pointArray[j + i * NUM_POINT_IN_CIRC].mvec.mvec[1], */
-      /*        pointArray[j + i * NUM_POINT_IN_CIRC].mvec.mvec[2], */
-      /*        pointArray[j + i * NUM_POINT_IN_CIRC].mvec.mvec[3]); */
     }
   }
 }
 
 void rotateTorus(struct GaVector *pointArray, float angle3, float angle4) {
+
   struct GaBivector rotPlane3 = newGaBivec(5.0, 3.5, -4.0);
   struct GaRotor rotor3 = newGaRotor(angle3, rotPlane3);
-  /* printf("rotor3:\n"); */
-  /* printf("s: %f, e12: %f, e31: %f, e23: %f \n", rotor3.mvec.mvec[0], */
-  /*        rotor3.mvec.mvec[4], rotor3.mvec.mvec[5], rotor3.mvec.mvec[6]); */
+
   struct GaBivector rotPlane4 = newGaBivec(-6.0, 2.0, 7.2);
   struct GaRotor rotor4 = newGaRotor(angle4, rotPlane4);
-  /* printf("rotor4:\n"); */
-  /* printf("s: %f, e12: %f, e31: %f, e23: %f \n", rotor4.mvec.mvec[0], */
-  /*        rotor4.mvec.mvec[4], rotor4.mvec.mvec[5], rotor4.mvec.mvec[6]); */
-  struct GaMultivector tmpRotor5 = GeometricProduct(rotor3.mvec, rotor4.mvec);
+
   struct GaRotor rotor5 = {
-      .mvec.mvec[0] = tmpRotor5.mvec[0] / Norm(tmpRotor5),
-      .mvec.mvec[4] = tmpRotor5.mvec[4] / Norm(tmpRotor5),
-      .mvec.mvec[5] = tmpRotor5.mvec[5] / Norm(tmpRotor5),
-      .mvec.mvec[6] = tmpRotor5.mvec[6] / Norm(tmpRotor5),
+      .mvec = GeometricProduct(rotor3.mvec, rotor4.mvec),
   };
-  // normalize the new rotor
 
-  /* printf("rotor5:\n"); */
-  /* printf("s: %f, e12: %f, e31: %f, e23: %f, length %f \n",
-   * rotor5.mvec.mvec[0], */
-  /*        rotor5.mvec.mvec[4], rotor5.mvec.mvec[5], rotor5.mvec.mvec[6], */
-  /*        Norm(tmpRotor5)); */
-
-  struct GaRotor rotor5Inv;
-  rotor5Inv.mvec = Inverse(rotor5.mvec);
+  struct GaRotor rotor5Inv = {
+      .mvec = Inverse(rotor5.mvec),
+  };
 
   for (int i = 0; i < NUM_POINT_IN_TORUS; i++) {
     struct GaVector vecRot = {
@@ -180,16 +182,24 @@ struct Screen projectTorus(struct GaVector *pointArray) {
       .mvec = Inverse(screenPlane.mvec),
   };
 
+  // light vector
+  struct GaVector lightRayDirection = newGaVec(1, 0.2, 1);
+  float raylenght = Norm(lightRayDirection.mvec);
+  struct GaVector lightRay = {
+      .mvec.mvec[1] = lightRayDirection.mvec.mvec[1] / raylenght,
+      .mvec.mvec[2] = lightRayDirection.mvec.mvec[2] / raylenght,
+      .mvec.mvec[3] = lightRayDirection.mvec.mvec[3] / raylenght,
+  };
+
   for (int i = 0; i < NUM_POINT_IN_TORUS; i++) {
+    // Project point vector onto the screen plane
     struct GaVector vectorProj = {
         .mvec =
             GeometricProduct(DotProduct(pointArray[i].mvec, screenPlane.mvec),
                              screenPlaneInv.mvec),
     };
 
-    /* printf("%d: e1: %f, e2: %f, e3: %f\n", i, vectorProj.mvec.mvec[1], */
-    /*        vectorProj.mvec.mvec[2], vectorProj.mvec.mvec[3]); */
-
+    // Scale the x and y value fit the sceeen
     int x = (int)ceilf(vectorProj.mvec.mvec[1] * DONUT_WIDTH /
                        (minorRadius * 2 + majorRadius)) +
             DONUT_WIDTH + DONUT_WIDTH_BUFFER;
@@ -204,17 +214,8 @@ struct Screen projectTorus(struct GaVector *pointArray) {
     // and the plane. 0 > then the surface is facing the light 0 < then the
     // surface is not facing Everything in between is some inbetween brigtness
 
-    // tanget plane
-    // the dual vector must go out
-
-    // light vector
-    struct GaVector lightRayDirection = newGaVec(1, 0.2, 1);
-    float raylenght = Norm(lightRayDirection.mvec);
-    struct GaVector lightRay = {
-        .mvec.mvec[1] = lightRayDirection.mvec.mvec[1] / raylenght,
-        .mvec.mvec[2] = lightRayDirection.mvec.mvec[2] / raylenght,
-        .mvec.mvec[3] = lightRayDirection.mvec.mvec[3] / raylenght,
-    };
+    // The tanget plane was added at the start and has been rototed the same as
+    // the point vectors
 
     // There are 12 brightness values
     // The wedge product gives values form -1 to 1
@@ -262,13 +263,12 @@ struct Screen projectTorus(struct GaVector *pointArray) {
       brightnessPixel = '@';
       break;
     default:
-      /* brightnessPixel = '#'; */
+      brightnessPixel = ' ';
     }
 
     // z bufer
     // this is the rejected vector
     // \[\vec{v}_perp = (\vec{v}\wedge\vec{B})\vec{B}^{-1} \]
-
     struct GaVector vectorRejct = {
         .mvec =
             GeometricProduct(WedgeProduct(pointArray[i].mvec, screenPlane.mvec),
@@ -307,6 +307,9 @@ void displayTorus(struct Screen screen) {
 }
 
 int main() {
+  // timing
+  uint64_t startMillis = millis();
+
   printf("\x1b[?25l");
   // Create torus
   struct GaVector pointArray[NUM_POINT_IN_TORUS]; // NUM_POINT_IN_TORIS
@@ -316,35 +319,31 @@ int main() {
   float angle4 = 0.0;
 
   while (1) {
+    // time
+    float deltat = ((float)millis() - (float)startMillis) / 1000; // seconds
+    printf("\x1b[30;1H");
+    printf("fps: %d\n", (int)(1 / deltat));
+    startMillis = millis();
 
     struct GaVector torusArray[NUM_POINT_IN_TORUS]; // NUM_POINT_IN_TORIS
     memcpy(torusArray, pointArray, sizeof(torusArray));
-    for (int i = 0; i < NUM_POINT_IN_TORUS; i++) {
 
-      /* printf("%d: e1: %f, e2: %f, e3: %f\n", i, torusArray[i].mvec.mvec[1],
-       */
-      /*        torusArray[i].mvec.mvec[2], torusArray[i].mvec.mvec[3]); */
-    }
-
-    angle3 += TAU / (60 * 5230);
+    // add angle form angular velocity
+    angle3 += ANGULARV1 * deltat;
     if (angle3 > TAU) {
-      angle3 -= TAU;
+      angle3 -= ((int)angle3 % (int)TAU) * TAU;
     }
 
-    angle4 += TAU / (60 * 3000);
+    angle4 += ANGULARV2 * deltat;
     if (angle4 > TAU) {
-      angle4 -= TAU;
+      angle4 -= ((int)angle4 % (int)TAU) * TAU;
     }
 
-    rotateTorus(pointArray, angle3, angle4);
+    rotateTorus(torusArray, angle3, angle4);
 
     struct Screen screen = projectTorus(torusArray);
 
     displayTorus(screen);
-    printf("\x1b[40;0H");
-    printf("%f\n", angle3);
-    printf("%f\n", angle4);
-    usleep((1 / 2) * 1000000);
   }
   return 0;
 }

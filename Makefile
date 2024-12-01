@@ -12,7 +12,7 @@ clean:
 build:
 	# When building include all files
 	# Include math
-	gcc donut.c vector.c bivector.c mvec.c rotor.c -o donut.bin -lm
+	gcc donut.c vector.c bivector.c mvec.c rotor.c -o donut.bin -lm -Wall -Wextra -Werror
 
 run:
 	./donut.bin
