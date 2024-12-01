@@ -1,0 +1,5 @@
+* Rotating Donut
+The repository is another implementation of the rotating donut.
+It is written in C and uses geometric algebra to do the math.
+
+The inspiration was the article [[https://www.a1k0n.net/2011/07/20/donut-math.html][donut.c]] written by a1k0n.net.
